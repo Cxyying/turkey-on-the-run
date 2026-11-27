@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#492c30">
+  <title>Turkey on the Run</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+    body {
+      display: grid;
+      place-items: center;
+      background: radial-gradient(ellipse at center, #6e4240, #33212b);
+      color: #fff1ce;
+      font: 800 16px system-ui, sans-serif;
+      overscroll-behavior: none;
+    }
+    main { position: relative; width: min(100vw, 177.7778dvh); }
+    #game { display: block; width: 100%; aspect-ratio: 16 / 9; touch-action: none; }
+    #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    #mobile { display: none; }
+    #mobile button {
+      flex: 1;
+      appearance: none;
+      min-height: 48px;
+      border: 1px solid #bb875f;
+      border-radius: 9px;
+      background: #55353a;
+      color: #fff1ce;
+      font: inherit;
+      touch-action: none;
+    }
+    #mobile button:active { background: #a3684b; }
+    @media (pointer: coarse) and (orientation: portrait) {
+      body:not([data-shot]) #mobile:not([hidden]) {
+        display: flex;
+        gap: 8px;
+        padding: 13px 12px 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <canvas id="game" role="img" aria-label="Turkey on the Run. Outrun the farmer. Jump over ground obstacles and duck under knives."></canvas>
+    <p id="status" role="status" aria-live="polite"></p>
+    <div id="mobile" hidden>
+      <button id="jump" type="button">Jump</button>
+      <button id="duck" type="button">Hold to duck</button>
+      <button id="pause" type="button">Pause</button>
+    </div>
+  </main>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
