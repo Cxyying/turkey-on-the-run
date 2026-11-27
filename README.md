@@ -4,6 +4,8 @@
 
 # Turkey on the Run
 
+**▶ Play it online: [cxyying.github.io/turkey-on-the-run/game](https://cxyying.github.io/turkey-on-the-run/game/)** — no install, runs right in your browser.
+
 A side-scrolling Thanksgiving escape runner built for the make.fun turkey escape bounty. Run the farm road and reach the Freedom Gate at 1,200 m. The farmer falls back while you run clean. Each hit costs a heart and gives him a chance to close the gap. The run ends if he catches you or you run out of hearts.
 
 Jump over hay bales, ovens, fences, and mud. Hold duck as carving knives fly past. Corn earns 5 points and golden corn earns 25.
