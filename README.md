@@ -1,3 +1,7 @@
+[![make.fun · turkey-run-game-01](https://make.fun/badge/turkey-run-game-01.svg)](https://make.fun/bounty/turkey-run-game-01?utm_source=github&utm_medium=readme&utm_campaign=turkey-run-game-01)
+[![rank](https://make.fun/badge/turkey-run-game-01/Cxyying/turkey-on-the-run/rank.svg)](https://make.fun/bounty/turkey-run-game-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=turkey-run-game-01)
+[![reward](https://make.fun/badge/turkey-run-game-01/Cxyying/turkey-on-the-run/reward.svg)](https://make.fun/bounty/turkey-run-game-01?utm_source=github&utm_medium=readme&utm_campaign=turkey-run-game-01)
+
 # Turkey on the Run
 
 A side-scrolling Thanksgiving escape runner built for the make.fun turkey escape bounty. Run the farm road and reach the Freedom Gate at 1,200 m. The farmer falls back while you run clean. Each hit costs a heart and gives him a chance to close the gap. The run ends if he catches you or you run out of hearts.
