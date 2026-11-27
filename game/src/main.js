@@ -49,6 +49,7 @@ function draw(pose, isShot = false) {
 
 function setScreen(next) {
   screen = next;
+  audio.setMusic(next === 'playing');
   jump = false;
   accumulator = 0;
   duckPointers.clear();
@@ -60,7 +61,9 @@ function setScreen(next) {
   if (next === 'paused') announce('Paused. Press P or click to resume.');
   if (next === 'caught' || next === 'escaped') {
     const result = next === 'escaped' ? 'You escaped! Free bird!' : 'Caught! Dinner time.';
-    announce(`${result} Score ${world.score}. Distance ${Math.floor(world.distance)} meters. Press R or click to run again.`);
+    announce(`${result} Score ${world.score}. Distance ${Math.floor(world.distance)} meters. ` +
+      `${world.cornCollected} corn, best combo ${world.bestCombo}, ${world.nearMisses} near misses, ` +
+      `${Math.floor(world.time)} seconds. Press R or click to run again.`);
   }
 }
 
@@ -96,7 +99,8 @@ function keydown(event) {
   if (code === 'KeyM') toggleMute();
   else if (code === 'KeyP') togglePause();
   else if (screen === 'title' && (jumpKeys.has(code) || code === 'Enter')) start();
-  else if ((screen === 'caught' || screen === 'escaped') && (code === 'KeyR' || code === 'Enter')) start();
+  else if (code === 'KeyR' && screen !== 'title') start();
+  else if ((screen === 'caught' || screen === 'escaped') && code === 'Enter') start();
   else if (screen === 'playing' && jumpKeys.has(code)) jump = true;
 }
 
@@ -131,12 +135,16 @@ function releaseDuck(event) {
 function action(type) {
   audio.play(type);
   if (type === 'hit') announce(`Stumbled! ${world.lives} ${world.lives === 1 ? 'life' : 'lives'} left.`);
+  if (type === 'feather') announce('Golden feather collected. Shield ready.');
+  if (type === 'shield') announce('Shield absorbed the impact.');
+  if (type === 'frenzy') announce('Corn frenzy. Double points for five seconds.');
 }
 
 function frame(now) {
   const elapsed = lastTime === null ? 0 : Math.min(0.1, (now - lastTime) / 1000);
   lastTime = now;
   if (screen === 'playing') {
+    audio.update();
     accumulator += elapsed;
     while (accumulator >= STEP && !world.result) {
       tick(world, { jump, duck: held.size > 0 || duckPointers.size > 0 }, action);

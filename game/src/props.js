@@ -31,6 +31,14 @@ function oven(c) {
   line(c, [[-29, -14], [29, -14]], '#9aab8f', 1.5);
 }
 
+function ovenEmbers(c, pose) {
+  for (let i = 0; i < 6; i++) {
+    const rise = (pose * (25 + i * 2) + i * 10) % 42;
+    const x = (i - 2.5) * 9 + Math.sin(pose * 4 + i) * 6;
+    sparkle(c, x, -72 - rise, (1 - rise / 42) * (3 + i % 3), i % 2 ? '#fff3b0' : '#e57d41');
+  }
+}
+
 function bale(c) {
   shadow(c, 0, 0, 41);
   round(c, -34, -52, 69, 51, 10, '#e8a84e', INK, 2.7);
@@ -118,6 +126,33 @@ function knife(c, pose) {
   sparkle(c, -22, -9, 5 + 2 * Math.sin(pose * 7), '#fff8e2');
 }
 
+function pumpkin(c, turns) {
+  shadow(c, 0, 0, 34);
+  c.save();
+  c.translate(0, -29);
+  c.rotate(turns);
+  const skin = c.createLinearGradient(-13, -29, 18, 27);
+  skin.addColorStop(0, '#ffd16b');
+  skin.addColorStop(0.47, '#ed8837');
+  skin.addColorStop(1, '#b44732');
+  ellipse(c, 0, 0, 30, 26, '#d55a2e', 0, INK, 2.5);
+  ellipse(c, -13, 0, 16, 25, skin, 0.12, '#a84b2c', 1.8);
+  ellipse(c, 13, 0, 16, 25, skin, -0.12, '#a84b2c', 1.8);
+  ellipse(c, 0, 0, 13, 26, skin, 0.02, '#bd542b', 1.5);
+  shape(c, '#71804c', p => {
+    p.moveTo(-5, -24);
+    p.quadraticCurveTo(1, -31, -2, -36);
+    p.lineTo(4, -37);
+    p.quadraticCurveTo(10, -31, 4, -24);
+    p.closePath();
+  }, INK, 1.7);
+  shape(c, '', p => {
+    p.moveTo(-4, -20);
+    p.quadraticCurveTo(-11, -11, -8, -3);
+  }, '#ffe593', 2.4);
+  c.restore();
+}
+
 export function corn(c, x, y, gold, pose, scale = 1) {
   c.save();
   c.translate(x, y);
@@ -150,14 +185,50 @@ export function corn(c, x, y, gold, pose, scale = 1) {
   c.restore();
 }
 
-export function prop(c, kind, x, y, pose) {
+export function goldenFeather(c, x, y, pose, scale = 1, glow = true) {
   c.save();
   c.translate(x, y);
-  if (kind === 'oven') oven(c);
+  c.scale(scale, scale);
+  if (glow) {
+    const light = c.createRadialGradient(0, 0, 2, 0, 0, 38);
+    light.addColorStop(0, '#fff4a4dd');
+    light.addColorStop(1, '#fff4a400');
+    ellipse(c, 0, 0, 38, 38, light);
+    sparkle(c, -22, 0, 5 + Math.sin(pose * 5) * 2, '#fff5c6');
+    sparkle(c, 20, -13, 7, '#fff5c6');
+  }
+  c.rotate(0.57 + Math.sin(pose * 3) * 0.13);
+  shape(c, '#ffc453', p => {
+    p.moveTo(0, 16);
+    p.bezierCurveTo(-13, 6, -16, -16, 0, -24);
+    p.bezierCurveTo(11, -22, 18, -4, 5, 7);
+    p.lineTo(8, 8);
+    p.quadraticCurveTo(5, 14, 0, 16);
+    p.closePath();
+  }, '#875034', 2);
+  shape(c, '#ffe89a', p => {
+    p.moveTo(0, 10);
+    p.quadraticCurveTo(-11, -1, -8, -11);
+    p.quadraticCurveTo(-5, -19, 0, -21);
+    p.quadraticCurveTo(-1, -9, 0, 10);
+  });
+  line(c, [[-2, 21], [0, 3], [0, -17]], '#a46731', 1.7);
+  for (let i = 0; i < 3; i++) line(c, [[1, -6 + i * 6], [7, -13 + i * 7]], '#fff1b1', 1.6);
+  c.restore();
+}
+
+export function prop(c, kind, x, y, pose, turns = 0) {
+  c.save();
+  c.translate(x, y);
+  if (kind === 'oven') {
+    ovenEmbers(c, pose);
+    oven(c);
+  }
   if (kind === 'hay') bale(c);
   if (kind === 'fence') hurdle(c);
   if (kind === 'mud') mud(c);
   if (kind === 'knife') knife(c, pose);
+  if (kind === 'pumpkin') pumpkin(c, turns);
   c.restore();
 }
 

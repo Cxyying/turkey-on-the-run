@@ -1,6 +1,7 @@
-import { GROUND, HEIGHT, WIDTH } from './config.js';
+import { GROUND, HEIGHT, PIXELS_PER_METER, WIDTH } from './config.js';
 import { randomStream } from './random.js';
 import { ellipse, line, polygon, round, shape } from './draw.js';
+import { createZoneScenery, farmRoad, zoneAt } from './zones.js';
 
 const wrap = (x, period) => ((x % period) + period) % period;
 
@@ -105,7 +106,28 @@ function grass(c, x, y, size, color) {
   });
 }
 
+function drawRoad(c, travel, freckles, palette) {
+  const soil = c.createLinearGradient(0, GROUND - 4, 0, HEIGHT);
+  soil.addColorStop(0, palette.soil[0]);
+  soil.addColorStop(0.26, palette.soil[1]);
+  soil.addColorStop(1, palette.soil[2]);
+  c.fillStyle = soil;
+  c.fillRect(0, GROUND - 3, WIDTH, HEIGHT - GROUND + 3);
+  line(c, [[0, GROUND - 3], [WIDTH, GROUND - 3]], palette.rim, 3);
+  for (const [offset, row, size, shade] of freckles) {
+    const x = wrap(offset - travel, 1560) - 90;
+    const y = GROUND + row ** 1.55 * (HEIGHT - GROUND);
+    if (shade > 0.81) {
+      line(c, [[x - size * 28, y], [x + size * 15, y]], row > 0.4 ? palette.flecks[0] : palette.flecks[1], 1 + size);
+    } else {
+      ellipse(c, x, y, 1 + size * 4, 0.6 + size * 1.5, shade > 0.38 ? palette.flecks[2] : palette.flecks[3], -0.09);
+    }
+  }
+
+}
+
 export function makeLandscape(seed) {
+  const zoneScenery = createZoneScenery(seed);
   const random = randomStream(seed ^ 0x98a463);
   const freckles = Array.from({ length: 330 }, () => [random() * 1560, random(), random(), random()]);
   const leaves = Array.from({ length: 24 }, () => [random() * 1490, random(), random(), random()]);
@@ -113,12 +135,17 @@ export function makeLandscape(seed) {
   const skyDust = Array.from({ length: 900 }, () => [random() * WIDTH, random() * HEIGHT, random()]);
 
   return function landscape(c, distance, time, scene) {
-    const travel = distance * 11;
+    const travel = distance * PIXELS_PER_METER;
     const hero = scene === 'title';
-    const dawn = scene === 'escaped';
+    const zone = zoneAt(distance);
+    if (zone !== 0 || scene === 'escaped') {
+      const palette = zoneScenery(c, zone, travel, time, scene);
+      drawRoad(c, travel, freckles, palette);
+      return;
+    }
     const sky = c.createLinearGradient(0, 0, 0, GROUND);
-    sky.addColorStop(0, dawn ? '#ec9a80' : '#dd8b79');
-    sky.addColorStop(0.48, dawn ? '#ffce92' : '#f6ba86');
+    sky.addColorStop(0, hero ? '#d88377' : '#df9979');
+    sky.addColorStop(0.48, hero ? '#f2ae81' : '#f6c58b');
     sky.addColorStop(1, '#ffe1a2');
     c.fillStyle = sky;
     c.fillRect(0, 0, WIDTH, HEIGHT);
@@ -197,23 +224,7 @@ export function makeLandscape(seed) {
       grass(c, x, 560 + y * 23, size * 9 + 3, shade > 0.56 ? '#936e42' : '#d2a658');
     }
 
-    const soil = c.createLinearGradient(0, GROUND - 4, 0, HEIGHT);
-    soil.addColorStop(0, '#ca854e');
-    soil.addColorStop(0.26, '#a96143');
-    soil.addColorStop(1, '#623840');
-    c.fillStyle = soil;
-    c.fillRect(0, GROUND - 3, WIDTH, HEIGHT - GROUND + 3);
-    line(c, [[0, GROUND - 3], [WIDTH, GROUND - 3]], '#f2bc72', 3);
-    for (const [offset, row, size, shade] of freckles) {
-      const x = wrap(offset - travel, 1560) - 90;
-      const y = GROUND + row ** 1.55 * (HEIGHT - GROUND);
-      if (shade > 0.81) {
-        line(c, [[x - size * 28, y], [x + size * 15, y]], row > 0.4 ? '#d78d5b4b' : '#f6bc796d', 1 + size);
-      } else {
-        ellipse(c, x, y, 1 + size * 4, 0.6 + size * 1.5, shade > 0.38 ? '#753e414f' : '#eda16d65', -0.09);
-      }
-    }
-
+    drawRoad(c, travel, freckles, farmRoad);
     for (const [offset, row, size, shade] of leaves) {
       const x = wrap(offset - travel * 0.48 - time * (8 + size * 12), 1490) - 100;
       const y = 270 + row * 274 + 13 * Math.sin(time * 2 + offset);

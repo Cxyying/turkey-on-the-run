@@ -51,6 +51,15 @@
       <button id="pause" type="button">Pause</button>
     </div>
   </main>
-  <script type="module" src="./src/main.js"></script>
+  <script>
+    const entry = document.createElement('script');
+    if (location.protocol === 'file:') {
+      entry.src = './offline.min.js';
+    } else {
+      entry.type = 'module';
+      entry.src = './src/main.js';
+    }
+    document.body.append(entry);
+  </script>
 </body>
 </html>

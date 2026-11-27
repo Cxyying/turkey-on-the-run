@@ -47,25 +47,25 @@ export function turkey(c, x, y, { scale = 1, stride = 0, duck = false, air = fal
   c.scale(scale, scale);
   const bob = duck || air ? 0 : -Math.abs(Math.sin(stride)) * 4;
   if (duck) {
-    c.translate(5, -1);
-    c.scale(1.07, 0.59);
+    c.translate(8, -1);
+    c.scale(1.12, 0.48);
   }
-  if (air) c.rotate(-0.10);
+  if (air) c.rotate(-0.16);
   if (mood === 'caught') c.rotate(0.052);
 
   const strideLength = duck ? 13 : 23;
   for (const [phase, shade] of [[stride + Math.PI, '#d4864b'], [stride, '#ffba5a']]) {
     const swing = Math.sin(phase);
-    const step = mood === 'caught' ? 0 : swing * strideLength;
-    const lift = mood === 'caught' ? 0 : air ? 13 : Math.max(0, Math.cos(phase)) * 12;
-    turkeyLeg(c, shade === '#ffba5a' ? 3 : -12, [step * 0.45 - 4, -11 - lift * 0.55],
-      [step, -6 - lift], shade);
+    const front = shade === '#ffba5a';
+    const step = mood === 'caught' ? 0 : air ? (front ? 20 : -24) + swing * 5 : swing * strideLength;
+    const lift = mood === 'caught' ? 0 : air ? (front ? 10 : 17) : Math.max(0, Math.cos(phase)) * 12;
+    turkeyLeg(c, front ? 3 : -12, [step * 0.45 - 4, -11 - lift * 0.55], [step, -6 - lift], shade);
   }
 
   c.translate(0, bob);
   c.save();
   c.translate(-18, -32);
-  c.rotate(Math.sin(stride * 0.74) * 0.05 - (duck ? 0.22 : 0));
+  c.rotate(Math.sin(stride * 0.74) * 0.05 - (duck ? 0.32 : 0) + (air ? 0.15 : 0));
   const red = ['#87403d', '#ba4f3b', '#f9a858', '#d36b51'];
   const cherry = ['#7e3540', '#a84644', '#ec8250', '#c96559'];
   const ochre = ['#9b4835', '#d86a3c', '#ffc064', '#e28950'];
@@ -110,7 +110,7 @@ export function turkey(c, x, y, { scale = 1, stride = 0, duck = false, air = fal
 
   c.save();
   c.translate(8, -39);
-  c.rotate(0.15 + (air ? 0.22 : 0.1) * Math.sin(stride * 1.53));
+  c.rotate((air ? 0.51 : 0.15) + (air ? 0.22 : 0.1) * Math.sin(stride * 1.53));
   shape(c, '#964e3e', p => {
     p.moveTo(14, -2);
     p.bezierCurveTo(7, 21, -23, 22, -40, 3);
@@ -140,7 +140,34 @@ function boot(c, kneeX, kneeY, ankleX, ankleY, color) {
   line(c, [[ankleX - 7, ankleY + 4], [ankleX + 16, ankleY + 4]], '#ac6c5b', 1.2);
 }
 
-export function farmer(c, x, y, { scale = 1, stride = 0, stopped = false } = {}) {
+function reachingArm(c, reach, swing, grabbing) {
+  const wristX = 34 + reach * 43;
+  const wristY = (grabbing ? -58 : -68) - reach * 28 + swing * 3;
+  const elbow = [31 + reach * 20, -62 - reach * 14];
+  const arm = [[8, -72], elbow, [wristX, wristY]];
+  line(c, arm, INK, 13);
+  line(c, arm, '#d4815e', 9.5);
+  line(c, [[9, -74], elbow], '#f1a371', 2);
+  c.save();
+  c.translate(wristX, wristY);
+  c.rotate(-reach * 0.36);
+  shape(c, '#f3b783', p => {
+    p.moveTo(-3, -5);
+    p.quadraticCurveTo(2, -9, 8, -6);
+    p.quadraticCurveTo(grabbing ? 14 : 20, -9, 20, -4);
+    p.quadraticCurveTo(20, 0, 14, 0);
+    p.quadraticCurveTo(19, 1, 16, 5);
+    p.lineTo(11, 7);
+    p.quadraticCurveTo(12, 11, 6, 11);
+    p.quadraticCurveTo(0, 11, -4, 5);
+    p.closePath();
+  }, INK, 1.7);
+  line(c, [[8, -1], [14, 0]], '#ab694e', 1.25);
+  line(c, [[5, 4], [11, 6]], '#ab694e', 1.2);
+  c.restore();
+}
+
+export function farmer(c, x, y, { scale = 1, stride = 0, stopped = false, reach = 0 } = {}) {
   c.save();
   c.translate(x, y);
   c.scale(scale, scale);
@@ -151,9 +178,11 @@ export function farmer(c, x, y, { scale = 1, stride = 0, stopped = false } = {})
   boot(c, 2 + swing * 14, -24 - frontLift * 0.5, 2 + swing * 26, -7 - frontLift, '#64827b');
 
   c.translate(0, stopped ? 0 : -Math.abs(swing) * 5);
-  const arm = [[-6, -70], [9 + swing * 11, -56], [28 + swing * 14, -73]];
-  line(c, arm, INK, 13);
-  line(c, arm, '#a95748', 9);
+  if (reach === 0) {
+    const arm = [[-6, -70], [9 + swing * 11, -56], [28 + swing * 14, -73]];
+    line(c, arm, INK, 13);
+    line(c, arm, '#a95748', 9);
+  }
 
   shape(c, '#d37858', p => {
     p.moveTo(-23, -49);
@@ -259,5 +288,6 @@ export function farmer(c, x, y, { scale = 1, stride = 0, stopped = false } = {})
   }, '#d5dac2', 2.7);
   ellipse(c, 0, 0, 7.9, 6.7, '#f0b188', -0.15, INK, 1.7);
   c.restore();
+  if (reach > 0) reachingArm(c, reach, swing, stopped);
   c.restore();
 }

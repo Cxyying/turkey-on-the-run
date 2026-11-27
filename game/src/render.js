@@ -1,14 +1,18 @@
-import { CREAM, FINISH, GROUND, HEIGHT, INK, MAX_LIVES, PIXELS_PER_METER, RUNNER_X, WIDTH } from './config.js';
+import { CREAM, FINISH, GROUND, HEIGHT, INK, MAX_LIVES, PIXELS_PER_METER, RUNNER_SCALE, RUNNER_X, WIDTH } from './config.js';
 import { farmer, turkey } from './actors.js';
 import { ellipse, heart, label, line, polygon, round, shape, spaced, sparkle } from './draw.js';
+import { chaseWind, frenzyEdges, frenzyTrail, playNotices, shieldHalo } from './effects.js';
 import { makeLandscape } from './landscape.js';
-import { corn, gate, prop, shadow } from './props.js';
-import { hazards } from './world.js';
+import { COMBO_WINDOW, FRENZY_LENGTH, FRENZY_STREAK } from './mechanics.js';
+import { corn, gate, goldenFeather, prop, shadow } from './props.js';
+import { hazardBase, hazards } from './world.js';
+import { zones } from './zones.js';
 
 const dark = '#492c30';
 const light = '#ffd584';
 const unit = '800 16px system-ui, sans-serif';
 const meters = value => Math.floor(value).toLocaleString('en-US');
+const clock = value => `${Math.floor(value / 60)}:${String(Math.floor(value) % 60).padStart(2, '0')}`;
 
 function panel(c, x, y, width, height, radius = 17) {
   round(c, x + 3, y + 6, width, height, radius, '#6e3c36ad');
@@ -82,6 +86,53 @@ function marker(c, x, y, type) {
   c.restore();
 }
 
+function statusStrip(c, world) {
+  const active = world.frenzy > 0;
+  panel(c, 28, 131, 340, 47, 12);
+  label(c, `COMBO ×${world.combo || 1}`, 45, 160, '900 16px system-ui, sans-serif', world.combo > 1 ? '#ffdf82' : CREAM);
+  round(c, 45, 166, 95, 2.6, 1.3, '#846052');
+  if (world.comboTime > 0) round(c, 45, 166, 95 * world.comboTime / COMBO_WINDOW, 2.6, 1.3, '#ffcf6c');
+  line(c, [[153, 142], [153, 167]], '#9e6852', 1.4);
+  if (active) {
+    label(c, `FRENZY ×2  ${world.frenzy.toFixed(1)}s`, 165, 159, '850 14px system-ui, sans-serif', '#ffe584');
+    round(c, 165, 166, 119 * world.frenzy / FRENZY_LENGTH, 2.6, 1.3, '#ffe071');
+  } else {
+    spaced(c, 'FRENZY', 166, 151, 9, '#f4be93', 1.55);
+    for (let i = 0; i < FRENZY_STREAK; i++) {
+      const filled = i < world.streak % FRENZY_STREAK;
+      ellipse(c, 173 + i * 14, 162, 4.2, 6, filled ? '#ffd271' : '#704441', 0.42, filled ? '#ffec9f' : '#a87158', 1);
+    }
+  }
+  line(c, [[294, 142], [294, 167]], '#9e6852', 1.4);
+  c.save();
+  c.globalAlpha = world.shield ? 1 : 0.43;
+  goldenFeather(c, 331, 155, world.time, 0.68, world.shield);
+  c.restore();
+}
+
+function zoneBadge(c, world) {
+  const zone = zones[world.zone];
+  panel(c, 974, 131, 185, 47, 12);
+  sparkle(c, 995, 154, 8, zone.color);
+  spaced(c, zone.name, 1011, 159, 13, zone.color, 1.05);
+}
+
+function zoneBanner(c, world) {
+  if (world.zoneTime <= 0) return;
+  const zone = zones[world.zone];
+  c.save();
+  c.globalAlpha = Math.min(1, world.zoneTime * 2.2);
+  const x = WIDTH / 2;
+  polygon(c, [[x - 232, 190], [x + 232, 190], [x + 217, 218], [x + 232, 247], [x - 232, 247],
+    [x - 218, 218]], '#503037', zone.color, 2);
+  line(c, [[x - 203, 196], [x + 203, 196]], '#bc885d', 1.3);
+  line(c, [[x - 203, 241], [x + 203, 241]], '#bc885d', 1.3);
+  sparkle(c, x - 193, 218, 10, zone.color);
+  sparkle(c, x + 193, 218, 10, zone.color);
+  spaced(c, `${zone.name} — ${zone.start}m`, x, 226, 21, zone.color, 1.5, 'center');
+  c.restore();
+}
+
 function hud(c, world) {
   panel(c, 28, 26, 176, 91, 16);
   corn(c, 61, 73, true, 0, 1.06);
@@ -101,13 +152,17 @@ function hud(c, world) {
   const hunter = Math.max(-12, (world.distance - world.gap) / FINISH * width);
   round(c, start, 79, width, 12, 6, '#2e1d27', '#794b46', 1.6);
   if (current > 0) round(c, start, 80, current, 10, 5, '#edb45d');
-  for (const fraction of [0.25, 0.5, 0.75]) {
-    line(c, [[start + width * fraction, 80], [start + width * fraction, 90]], '#ad72594d', 1.5);
+  for (const zone of zones.slice(1)) {
+    const x = start + width * zone.start / FINISH;
+    line(c, [[x, 77], [x, 94]], zone.color, 1.7);
   }
   marker(c, start + hunter, 95, 'farmer');
   marker(c, start + current, 77, 'turkey');
   line(c, [[1118, 97], [1118, 72]], '#edb979', 2);
   polygon(c, [[1118, 73], [1139, 75], [1133, 80], [1118, 82]], '#e38c61');
+  statusStrip(c, world);
+  zoneBadge(c, world);
+  zoneBanner(c, world);
 }
 
 function key(c, text, x, y, width) {
@@ -148,20 +203,24 @@ function actorsAndCourse(c, world, pose) {
   if (finishX < WIDTH + 140) gate(c, finishX, GROUND);
   for (const item of world.things) {
     const x = RUNNER_X + (item.x - world.distance) * PIXELS_PER_METER;
-    if (item.used || x < -115 || x > WIDTH + 115) continue;
+    if ((item.used && !item.cleared) || x < -115 || x > WIDTH + 115) continue;
     const hazard = hazards[item.kind];
     if (hazard) {
-      const lift = hazard.lift ? hazard.lift + hazard.height / 2 : 0;
-      prop(c, item.kind, x, GROUND - lift, pose);
+      const lift = hazard.lift ? hazardBase(item) + hazard.height / 2 : 0;
+      const turns = (item.x - item.meter) * PIXELS_PER_METER / 29;
+      prop(c, item.kind, x, GROUND - lift, pose, turns);
     } else {
       const lift = item.lift + Math.sin(pose * 5 + item.x) * 3;
-      corn(c, x, GROUND - lift, item.kind === 'gold', pose);
+      if (item.kind === 'feather') goldenFeather(c, x, GROUND - lift, pose, 0.8);
+      else corn(c, x, GROUND - lift, item.kind === 'gold', pose, world.lift > 0 ? 1.08 : 1);
     }
   }
   dustTrails(c, hunterX + 20, GROUND - 19, pose);
-  shadow(c, hunterX, GROUND, 38);
+  shadow(c, hunterX, GROUND, 45);
   shadow(c, RUNNER_X, GROUND, 44 - world.lift * 0.18, 0.31 - world.lift * 0.0015);
-  farmer(c, hunterX, GROUND, { scale: 0.94, stride: world.chaseStride });
+  const proximity = Math.max(0.34, 1 - (world.gap - 13) * 0.065);
+  const reach = proximity * (0.5 + 0.5 * Math.max(0, Math.sin(world.chaseStride)));
+  farmer(c, hunterX, GROUND, { scale: RUNNER_SCALE, stride: world.chaseStride, reach });
   for (const p of world.particles) {
     const fraction = p.life / p.maxLife;
     c.globalAlpha = fraction * (p.kind === 'dust' ? 0.74 : 1);
@@ -170,20 +229,41 @@ function actorsAndCourse(c, world, pose) {
     if (p.kind === 'spark') sparkle(c, x, y, p.size, '#fff1a3');
     else ellipse(c, x, y, p.size * (1.2 - fraction * 0.3), p.size * 0.65, p.kind === 'mud' ? '#77483a' : '#f8c280', -0.22);
   }
+  c.globalAlpha = 1;
+  frenzyTrail(c, world);
+  shieldHalo(c, world, pose);
   c.globalAlpha = world.immunity > 0 && Math.floor(world.time * 16) % 2 ? 0.5 : 1;
-  turkey(c, RUNNER_X, GROUND - world.lift, { stride: world.stride, duck: world.duck, air: world.lift > 0 });
+  turkey(c, RUNNER_X, GROUND - world.lift, {
+    scale: RUNNER_SCALE, stride: world.stride, duck: world.duck, air: world.lift > 0,
+  });
   c.globalAlpha = 1;
 }
 
 function duckHint(c, world, touch) {
-  if (world.distance < 62 || world.distance > 105) return;
+  if (world.distance < 62 || world.distance > 110) return;
   const knife = world.things.find(item => item.kind === 'knife' && !item.used);
   if (!knife) return;
   const x = RUNNER_X + (knife.x - world.distance) * PIXELS_PER_METER;
   if (x > WIDTH - 100) return;
-  round(c, x - 65, 455, 130, 35, 10, '#583538', '#d08a5d', 1.4);
-  polygon(c, [[x - 7, 489], [x + 7, 489], [x, 499]], '#583538');
-  spaced(c, touch ? 'HOLD DUCK' : 'DUCK  ↓', x, 478, 13, CREAM, 1.7, 'center');
+  const y = Math.min(465, GROUND - hazardBase(knife) - 62);
+  round(c, x - 65, y, 130, 35, 10, '#583538', '#d08a5d', 1.4);
+  polygon(c, [[x - 7, y + 34], [x + 7, y + 34], [x, y + 44]], '#583538');
+  spaced(c, touch ? 'HOLD DUCK' : 'DUCK  ↓', x, y + 23, 13, CREAM, 1.7, 'center');
+}
+
+function titleBadges(c, pose) {
+  for (const [i, [text, x, width]] of [['3 ZONES', 75, 116], ['COMBO ×5', 201, 139], ['FEATHER SHIELD', 350, 186]].entries()) {
+    round(c, x, 425, width, 37, 9, '#613735', '#8b4c3b', 2);
+    round(c, x + 4, 429, width - 8, 29, 6, '', '#ab7350', 1);
+    if (i === 0) {
+      polygon(c, [[x + 12, 449], [x + 19, 437], [x + 24, 444], [x + 28, 439], [x + 33, 449]], '#ffd588');
+    } else if (i === 1) {
+      sparkle(c, x + 22, 443, 10, '#ffdb84');
+    } else {
+      goldenFeather(c, x + 23, 443, pose, 0.49, false);
+    }
+    spaced(c, text, x + 38, 448, 12, '#fff0bf', 1.15);
+  }
 }
 
 function title(c, pose, hover) {
@@ -212,13 +292,15 @@ function title(c, pose, hover) {
   display(c, 'TURKEY', 0, 0, 507, 130, '#fff3d1');
   display(c, 'ON THE RUN', 3, 105, 571, 103, '#ffce6c');
   c.restore();
-  label(c, 'Outrun the farmer and reach the Freedom Gate.', 76, 418, '750 21px system-ui, sans-serif', '#4d2b2c');
-  button(c, 'Press SPACE or click to run', 74, 456, 367, hover);
-  round(c, 74, 526, 461, 36, 9, '#f9d393e8', '#8a523f', 1.4);
-  label(c, 'SPACE / W / ↑  Jump    ·    S / ↓  Duck    ·    P  Pause', 87, 549, '800 16px system-ui, sans-serif', '#542e2e');
+  label(c, 'Outrun the farmer and reach the Freedom Gate.', 76, 407, '750 21px system-ui, sans-serif', '#4d2b2c');
+  titleBadges(c, pose);
+  button(c, 'Press SPACE or click to run', 74, 479, 388, hover);
+  round(c, 74, 550, 475, 35, 9, '#f9d393e8', '#8a523f', 1.4);
+  label(c, 'SPACE / W / ↑  Jump    ·    S / ↓  Duck    ·    P  Pause', 87, 572, '800 16px system-ui, sans-serif', '#542e2e');
 
-  line(c, [[77, 642], [122, 642]], '#f0bf7f', 1.4);
-  spaced(c, '1,200 M TO FREEDOM', 138, 648, 14, '#ffe1a3', 3);
+  line(c, [[77, 646], [103, 646]], '#f0bf7f', 1.4);
+  label(c, "Dodge ovens & knives · Grab corn · Don't get caught", 118, 652, '780 18px system-ui, sans-serif', '#ffe7ba');
+  spaced(c, '1,200 M TO FREEDOM', 1023, 651, 12, '#ffe1a3', 1.8);
 }
 
 function confetti(c, pose) {
@@ -226,8 +308,23 @@ function confetti(c, pose) {
   for (let i = 0; i < 35; i++) {
     const x = 653 + (i * 157 % 580);
     const y = 101 + ((i * 113 + pose * (26 + i % 5)) % 400);
-    if (i % 4 === 0) sparkle(c, x, y, 6 + i % 5, colors[i % 4]);
+    if (i % 4 === 0) sparkle(c, x, y, 6 + i % 5, '#fffbea');
     else ellipse(c, x, y, 4 + i % 6, 2, colors[i % 4], i + pose * 2);
+  }
+}
+
+function catchDust(c, pose) {
+  for (let i = 0; i < 17; i++) {
+    const phase = (i * 0.17 + pose * 0.32) % 1;
+    const x = 889 - phase * (190 + i % 5 * 12);
+    const y = GROUND - 4 - phase * (28 + i % 4 * 13);
+    const size = 3 + phase * 16;
+    c.globalAlpha = (1 - phase) * 0.65;
+    ellipse(c, x, y, size * 1.47, size * 0.75, i % 2 ? '#f0ad73' : '#ffd197', -0.18);
+  }
+  c.globalAlpha = 1;
+  for (const [x, y, length] of [[729, 554, 71], [711, 536, 51], [758, 571, 92], [698, 566, 53]]) {
+    line(c, [[x, y], [x + length, y - 7]], '#ffdfad80', 2.5);
   }
 }
 
@@ -246,11 +343,12 @@ function ending(c, world, escaped, pose, hover) {
     veil.addColorStop(1, '#50263461');
     c.fillStyle = veil;
     c.fillRect(0, 0, WIDTH, HEIGHT);
+    catchDust(c, pose);
     shadow(c, 823, GROUND, 95);
-    shadow(c, 1039, GROUND, 115);
-    farmer(c, 827, GROUND, { scale: 2.38, stopped: true });
-    turkey(c, 1045, GROUND, { scale: 2.16, stride: 0, mood: 'caught' });
-    for (const [x, y, size] of [[1102, 347, 13], [1130, 328, 8], [1129, 368, 10]]) {
+    shadow(c, 1051, GROUND, 115);
+    turkey(c, 1066, GROUND - 10, { scale: 2.16, stride: 0, mood: 'caught' });
+    farmer(c, 823, GROUND, { scale: 2.38, stopped: true, reach: 1 });
+    for (const [x, y, size] of [[1122, 347, 13], [1151, 328, 8], [1149, 368, 10]]) {
       shape(c, '#fff0caaa', p => {
         p.moveTo(x, y - size);
         p.quadraticCurveTo(x + size, y + size, x, y + size);
@@ -259,7 +357,7 @@ function ending(c, world, escaped, pose, hover) {
     }
   }
 
-  panel(c, 63, 133, 570, 436, 29);
+  panel(c, 63, 133, 570, 453, 29);
   display(c, escaped ? 'YOU ESCAPED!' : 'CAUGHT!', 96, 258, escaped ? 487 : 394,
     escaped ? 69 : 105, escaped ? '#ffd379' : '#fff0ce', '#3e242c');
   label(c, escaped ? 'Free bird!' : 'Dinner time...', 99, 314, 'italic 750 31px Georgia, serif', '#f0bd91');
@@ -270,7 +368,12 @@ function ending(c, world, escaped, pose, hover) {
   line(c, [[306, 371], [306, 434]], '#97634e', 1.4);
   spaced(c, 'DISTANCE', 336, 386, 13, '#eeb78e', 2.8);
   label(c, `${meters(world.distance)} m`, 333, 424, '900 34px system-ui, sans-serif', CREAM);
-  button(c, 'Press R or click to run again', 96, 478, 497, hover);
+  round(c, 96, 451, 497, 38, 9, '#38242c', '#805445', 1.3);
+  const missLabel = world.nearMisses === 1 ? 'near miss' : 'near misses';
+  const best = world.bestCombo ? `×${world.bestCombo}` : '—';
+  label(c, `${world.cornCollected} corn  ·  Best combo ${best}  ·  ${world.nearMisses} ${missLabel}  ·  ${clock(world.time)} elapsed`,
+    344, 475, '740 15px system-ui, sans-serif', '#f9d5aa', 'center');
+  button(c, 'Press R or click to run again', 96, 508, 497, hover);
 }
 
 function pause(c, hover) {
@@ -296,11 +399,16 @@ export function createRenderer(c, seed) {
       c.translate(-WIDTH / 2, -HEIGHT / 2);
     }
     landscape(c, screen === 'title' ? 0 : world.distance, pose, screen);
-    if (playing) actorsAndCourse(c, world, pose);
+    if (playing) {
+      chaseWind(c, world, pose);
+      actorsAndCourse(c, world, pose);
+    }
     c.restore();
 
     if (screen === 'title') title(c, pose, hover);
     else if (playing) {
+      frenzyEdges(c, world, pose);
+      playNotices(c, world);
       duckHint(c, world, touch);
       hud(c, world);
       playKeys(c, touch, world);
