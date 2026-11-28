@@ -40,18 +40,19 @@ export function shieldHalo(c, world, pose) {
   if (!world.shield) return;
   const x = RUNNER_X - 14;
   const y = GROUND - world.lift - (world.duck ? 34 : 63);
+  const rx = 109;
   const ry = world.duck ? 47 : 77;
   const glow = c.createRadialGradient(x, y, 34, x, y, 108);
-  glow.addColorStop(0, '#ffde6b32');
-  glow.addColorStop(0.65, '#ffdf7756');
+  glow.addColorStop(0, '#ffde6b50');
+  glow.addColorStop(0.65, '#ffdf778c');
   glow.addColorStop(1, '#ffdf7700');
   ellipse(c, x, y, 120, ry * 1.17, glow);
-  for (const [start, span] of [[0.18, 1.9], [2.51, 2.12], [5.1, 1.03]]) {
-    shape(c, '', p => p.ellipse(x, y, 109, ry, -0.15, pose * 0.71 + start, pose * 0.71 + start + span), '#fff0a7bd', 2);
+  for (const [inset, color, width] of [[0, '#ffd94d', 5], [6, '#fff0a7', 3]]) {
+    shape(c, '', p => p.ellipse(x, y, rx - inset, ry - inset, -0.15, 0, Math.PI * 2), color, width);
   }
   for (let i = 0; i < 5; i++) {
     const angle = pose * 1.6 + i * Math.PI * 0.4;
-    sparkle(c, x + Math.cos(angle) * 109, y + Math.sin(angle) * ry, 4 + i % 3, '#fff3ad');
+    sparkle(c, x + Math.cos(angle) * rx, y + Math.sin(angle) * ry, 4 + i % 3, '#fff3ad');
   }
 }
 

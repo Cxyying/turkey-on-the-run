@@ -285,31 +285,43 @@ function woods(c, travel, time, details, sky) {
 }
 
 function sunrise(c, time, details) {
-  gradient(c, [[0, '#ddb3ab'], [0.33, '#f1ccaa'], [0.63, '#fff0bf'], [0.83, '#fff3c5'], [1, '#ecc48b']]);
-  const sunX = 1003;
-  const sunY = 366;
-  halo(c, sunX, sunY, 347, '#fff5c6f5');
+  gradient(c, [[0, '#4b385e'], [0.33, '#976180'], [0.60, '#dd8875'], [0.80, '#ffc47e'], [1, '#ef9e67']]);
+  const sunX = 697;
+  const sunY = 430;
+  const sunRadius = 68;
+  halo(c, sunX, sunY, 265, '#ffce828c');
   for (let i = 0; i < 10; i++) {
     const angle = -2.95 + i * 0.30;
     const edge = angle + 0.085;
     polygon(c, [[sunX, sunY], [sunX + Math.cos(angle) * 870, sunY + Math.sin(angle) * 870],
-      [sunX + Math.cos(edge) * 870, sunY + Math.sin(edge) * 870]], '#fff9d52e');
+      [sunX + Math.cos(edge) * 870, sunY + Math.sin(edge) * 870]], '#ffe7ad3b');
   }
-  ellipse(c, sunX, sunY, 140, 140, '#fff7ca', 0, '#fffce6', 2.5);
-  cloudBank(c, 832, 358, 389, 26, '#fff4d598');
-  cloudBank(c, 1234, 271, 269, 25, '#fffbe06c');
-  cloudBank(c, 403, 294, 285, 22, '#fff3da6b');
+  const sun = c.createLinearGradient(0, sunY - sunRadius, 0, sunY + sunRadius);
+  sun.addColorStop(0, '#fff5cb');
+  sun.addColorStop(1, '#ffb760');
+  ellipse(c, sunX, sunY, sunRadius, sunRadius, sun, 0, '#ffe6a5', 2);
+  cloudBank(c, 845, 326, 215, 23, '#ffce9a69');
+  cloudBank(c, 1190, 273, 269, 25, '#eda38d63');
+  cloudBank(c, 445, 352, 285, 22, '#efad8a70');
 
-  ridge(c, 461, 159, 67, 860, '#c5ac94');
-  ridge(c, 472, 212, 47, 1135, '#c2b28b');
+  ridge(c, 470, 105, 35, 930, '#a96771');
+  ridge(c, 490, 222, 37, 1100, '#8e5867');
   const mist = c.createLinearGradient(0, 392, 0, 522);
   mist.addColorStop(0, '#fff1c500');
-  mist.addColorStop(0.53, '#fff2cbb3');
+  mist.addColorStop(0.53, '#ffc48950');
   mist.addColorStop(1, '#fff1c500');
   c.fillStyle = mist;
   c.fillRect(0, 392, WIDTH, 130);
-  ridge(c, 513, 283, 33, 988, '#a8a57a');
-  ridge(c, 549, 135, 23, 774, '#b8b084');
+  ridge(c, 517, 283, 27, 988, '#765261');
+  for (let i = 0; i < 20; i++) {
+    pine(c, i * 71 - 26, 537 + Math.sin(i * 1.9) * 11, 0.28 + i % 5 * 0.10, ['#604653', '#523b49', '#8e5f63']);
+  }
+  ridge(c, 550, 135, 21, 774, '#694956');
+  for (let x = -30; x < WIDTH; x += 94) {
+    line(c, [[x, 534], [x + 94, 534]], '#4f3943', 4);
+    line(c, [[x, 546], [x + 94, 546]], '#4f3943', 4);
+    polygon(c, [[x - 3, 557], [x - 4, 525], [x, 520], [x + 4, 525], [x + 3, 557]], '#483541');
+  }
   for (let i = 0; i < 8; i++) {
     const x = i * 191 - 88;
     terrace(c, x, 550 + i % 2 * 9, 277, 40, '#e9cf9594', 2.4);

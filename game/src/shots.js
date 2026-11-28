@@ -1,8 +1,12 @@
 import { burst, courseItem, createWorld, hazards, tick } from './world.js';
-import { zoneAt } from './zones.js';
+import { zoneAt, zones } from './zones.js';
 
-function autoplay(world) {
+function autoplay(world, dodgeUntil = Infinity) {
   while (!world.result) {
+    if (world.distance >= dodgeUntil) {
+      tick(world);
+      continue;
+    }
     const hazard = world.things.find(item => hazards[item.kind] && !item.used);
     const ahead = hazard ? hazard.meter - world.distance : Infinity;
     tick(world, {
@@ -37,6 +41,7 @@ function harvestReplay(world) {
     tick(world, { jump });
     jumped ||= jump;
   }
+  world.shield = true;
   world.chaseStride = Math.PI * 0.66;
   for (const [x, y, count] of [[-273, 15, 6], [-245, 24, 4], [-222, 13, 9], [-196, 7, 12], [-125, 5, 5]]) {
     burst(world, 'dust', count, x, y);
@@ -53,12 +58,8 @@ export function stageShot(name, seed) {
     return { world, screen: world.result, pose: 2.1 };
   }
   if (name === 'end') {
-    let jumped = false;
-    while (!world.result) {
-      const jump = !jumped && world.distance >= 39.5;
-      tick(world, { jump });
-      jumped ||= jump;
-    }
+    // Dodge through the first two zones, then let the woods hazards end the run.
+    autoplay(world, zones[2].start);
     return { world, screen: world.result, pose: 0.35 };
   }
   harvestReplay(world);

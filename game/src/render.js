@@ -2,6 +2,7 @@ import { CREAM, FINISH, GROUND, HEIGHT, INK, MAX_LIVES, PIXELS_PER_METER, RUNNER
 import { farmer, turkey } from './actors.js';
 import { ellipse, heart, label, line, polygon, round, shape, spaced, sparkle } from './draw.js';
 import { chaseWind, frenzyEdges, frenzyTrail, playNotices, shieldHalo } from './effects.js';
+import { runGrade } from './grading.js';
 import { makeLandscape } from './landscape.js';
 import { COMBO_WINDOW, FRENZY_LENGTH, FRENZY_STREAK } from './mechanics.js';
 import { corn, gate, goldenFeather, prop, shadow } from './props.js';
@@ -328,6 +329,18 @@ function catchDust(c, pose) {
   }
 }
 
+function gradeStamp(c, grade) {
+  const ink = grade === 'S' ? '#ffda7f' : '#efa485';
+  c.save();
+  c.translate(540, 398);
+  c.rotate(-0.16);
+  round(c, -45, -41, 90, 82, 11, '#3b252d', ink, 2.5);
+  round(c, -39, -35, 78, 70, 7, '', ink, 1);
+  spaced(c, 'GRADE', 0, -19, 11, ink, 2, 'center');
+  label(c, grade, 0, 25, '1000 51px system-ui, sans-serif', ink, 'center');
+  c.restore();
+}
+
 function ending(c, world, escaped, pose, hover) {
   if (escaped) {
     gate(c, 950, GROUND - 7, 2.02);
@@ -368,6 +381,7 @@ function ending(c, world, escaped, pose, hover) {
   line(c, [[306, 371], [306, 434]], '#97634e', 1.4);
   spaced(c, 'DISTANCE', 336, 386, 13, '#eeb78e', 2.8);
   label(c, `${meters(world.distance)} m`, 333, 424, '900 34px system-ui, sans-serif', CREAM);
+  gradeStamp(c, runGrade(world));
   round(c, 96, 451, 497, 38, 9, '#38242c', '#805445', 1.3);
   const missLabel = world.nearMisses === 1 ? 'near miss' : 'near misses';
   const best = world.bestCombo ? `×${world.bestCombo}` : '—';

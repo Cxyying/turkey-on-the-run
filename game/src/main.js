@@ -1,5 +1,6 @@
 import { HEIGHT, STEP, WIDTH } from './config.js';
 import { createAudio } from './audio.js';
+import { runGrade } from './grading.js';
 import { createRenderer, duckRegion, inRegion, muteRegion } from './render.js';
 import { stageShot } from './shots.js';
 import { createWorld, tick } from './world.js';
@@ -61,7 +62,7 @@ function setScreen(next) {
   if (next === 'paused') announce('Paused. Press P or click to resume.');
   if (next === 'caught' || next === 'escaped') {
     const result = next === 'escaped' ? 'You escaped! Free bird!' : 'Caught! Dinner time.';
-    announce(`${result} Score ${world.score}. Distance ${Math.floor(world.distance)} meters. ` +
+    announce(`${result} Grade ${runGrade(world)}. Score ${world.score}. Distance ${Math.floor(world.distance)} meters. ` +
       `${world.cornCollected} corn, best combo ${world.bestCombo}, ${world.nearMisses} near misses, ` +
       `${Math.floor(world.time)} seconds. Press R or click to run again.`);
   }
